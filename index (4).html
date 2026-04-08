@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Akıllı Sistem · elfatek</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900: #050e1f;
+    --navy-800: #0a1a35;
+    --navy-700: #0f2547;
+    --navy-600: #15559e;
+    --navy-500: #1a66c0;
+    --navy-400: #2a7dd6;
+    --white: #ffffff;
+    --white-90: rgba(255,255,255,0.9);
+    --white-60: rgba(255,255,255,0.6);
+    --white-30: rgba(255,255,255,0.3);
+    --white-10: rgba(255,255,255,0.08);
+    --white-5: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.1);
+    --border-bright: rgba(255,255,255,0.18);
+    --success: #22d390;
+    --warn: #f5a623;
+    --danger: #f05252;
+    --temp-col: #ff7c47;
+    --nem-col: #5b9fe0;
+    --isik-col: #ffd84a;
+    --hava-col: #22d390;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--navy-900); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+  body::after { content:''; position:fixed; top:-200px; left:50%; transform:translateX(-50%); width:800px; height:400px; background:radial-gradient(ellipse,rgba(21,85,158,0.35) 0%,transparent 70%); pointer-events:none; z-index:0; }
+
+  .topnav { position:sticky; top:0; z-index:100; background:rgba(5,14,31,0.9); backdrop-filter:blur(16px); border-bottom:1px solid var(--border); padding:0 32px; height:64px; display:flex; align-items:center; justify-content:space-between; }
+  .brand { display:flex; align-items:center; gap:20px; }
+  .brand-sep { width:1px; height:32px; background:var(--border-bright); }
+  .brand-title { font-size:0.78rem; font-weight:600; color:var(--white-90); }
+  .brand-sub { font-family:'Space Mono',monospace; font-size:0.58rem; color:var(--white-60); text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
+  .nav-right { display:flex; gap:12px; align-items:center; }
+  .live-pill { display:flex; align-items:center; gap:8px; background:var(--white-10); border:1px solid var(--border-bright); padding:6px 14px; border-radius:100px; font-family:'Space Mono',monospace; font-size:0.68rem; color:var(--white-60); }
+  .live-dot { width:7px; height:7px; background:var(--success); border-radius:50%; animation:blink 1.5s infinite; box-shadow:0 0 6px var(--success); }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+  .btn-cfg { background:var(--white-10); border:1px solid var(--border-bright); color:var(--white-60); padding:7px 16px; border-radius:8px; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:0.8rem; font-weight:600; transition:all 0.2s; }
+  .btn-cfg:hover { color:var(--white); border-color:var(--white-30); }
+
+  .wrap { max-width:1440px; margin:0 auto; padding:28px 24px; position:relative; z-index:1; }
+
+  .status-strip { display:flex; background:var(--navy-800); border:1px solid var(--border); border-radius:12px; margin-bottom:24px; overflow:hidden; }
+  .status-item { flex:1; padding:14px 20px; border-right:1px solid var(--border); display:flex; flex-direction:column; gap:4px; }
+  .status-item:last-child { border-right:none; }
+  .status-lbl { font-family:'Space Mono',monospace; font-size:0.58rem; color:var(--white-60); text-transform:uppercase; letter-spacing:1.5px; }
+  .status-val { font-size:0.88rem; font-weight:600; color:var(--white); }
+
+  .filter-bar { background:var(--navy-800); border:1px solid var(--border); border-radius:14px; padding:18px 22px; display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap; margin-bottom:24px; }
+  .fg { display:flex; flex-direction:column; gap:6px; flex:1; min-width:140px; }
+  .fg label { font-family:'Space Mono',monospace; font-size:0.58rem; color:var(--white-60); text-transform:uppercase; letter-spacing:1.5px; }
+  .fg input,.fg select { background:var(--navy-700); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:0.82rem; outline:none; transition:border-color 0.2s,box-shadow 0.2s; width:100%; }
+  .fg select option { background:var(--navy-800); }
+  .fg input:focus,.fg select:focus { border-color:var(--navy-400); box-shadow:0 0 0 3px rgba(42,125,214,0.2); }
+  .btn { padding:9px 22px; border-radius:8px; border:none; font-family:'DM Sans',sans-serif; font-weight:700; font-size:0.85rem; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+  .btn-primary { background:var(--navy-600); color:#fff; }
+  .btn-primary:hover { background:var(--navy-500); box-shadow:0 4px 20px rgba(21,85,158,0.5); transform:translateY(-1px); }
+  .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--white-60); }
+  .btn-ghost:hover { border-color:var(--white-30); color:var(--white); }
+
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:24px; }
+  .sc { background:var(--navy-800); border:1px solid var(--border); border-radius:16px; padding:22px; position:relative; overflow:hidden; transition:transform 0.2s,box-shadow 0.2s,border-color 0.2s; }
+  .sc:hover { transform:translateY(-4px); }
+  .sc.temp:hover{border-color:var(--temp-col);box-shadow:0 12px 40px rgba(255,124,71,0.15);}
+  .sc.nem:hover{border-color:var(--nem-col);box-shadow:0 12px 40px rgba(91,159,224,0.15);}
+  .sc.isik:hover{border-color:var(--isik-col);box-shadow:0 12px 40px rgba(255,216,74,0.15);}
+  .sc.hava:hover{border-color:var(--hava-col);box-shadow:0 12px 40px rgba(34,211,144,0.15);}
+  .sc::before{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;opacity:0.12;}
+  .sc.temp::before{background:var(--temp-col);}.sc.nem::before{background:var(--nem-col);}
+  .sc.isik::before{background:var(--isik-col);}.sc.hava::before{background:var(--hava-col);}
+  .sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;border-radius:0 0 16px 16px;}
+  .sc.temp::after{background:var(--temp-col);}.sc.nem::after{background:var(--nem-col);}
+  .sc.isik::after{background:var(--isik-col);}.sc.hava::after{background:var(--hava-col);}
+  .sc-icon{font-size:1.6rem;margin-bottom:12px;display:block;}
+  .sc-lbl{font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--white-60);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;}
+  .sc-val{font-size:2.2rem;font-weight:700;line-height:1;margin-bottom:6px;}
+  .sc.temp .sc-val{color:var(--temp-col);}.sc.nem .sc-val{color:var(--nem-col);}
+  .sc.isik .sc-val{color:var(--isik-col);}.sc.hava .sc-val{color:var(--hava-col);}
+  .sc-sub{font-size:0.75rem;color:var(--white-60);font-weight:500;}
+
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+  @media(max-width:900px){.charts-grid{grid-template-columns:1fr}}
+  .chart-card{background:var(--navy-800);border:1px solid var(--border);border-radius:16px;padding:22px;}
+  .chart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .chart-ttl{font-size:0.88rem;font-weight:600;color:var(--white-90);display:flex;align-items:center;gap:8px;}
+  .cdot{width:8px;height:8px;border-radius:50%;}
+  .chart-cnt{font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--white-60);background:var(--white-10);padding:3px 10px;border-radius:100px;border:1px solid var(--border);}
+  canvas{max-height:195px;}
+
+  .tbl-card{background:var(--navy-800);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:24px;}
+  .tbl-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;}
+  .tbl-ttl{font-size:0.95rem;font-weight:700;color:var(--white);}
+  .tbl-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+  thead tr{border-bottom:1px solid var(--border);}
+  th{text-align:left;padding:10px 14px;color:var(--white-60);font-family:'Space Mono',monospace;font-size:0.58rem;font-weight:400;text-transform:uppercase;letter-spacing:1px;white-space:nowrap;background:var(--white-5);}
+  th:first-child{border-radius:8px 0 0 8px}th:last-child{border-radius:0 8px 8px 0}
+  td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.05);white-space:nowrap;font-weight:500;color:var(--white-90);}
+  tbody tr:hover{background:var(--white-5);}
+  tbody tr:last-child td{border-bottom:none;}
+
+  .pagination{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+  .pbtn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--white-60);font-family:'DM Sans',sans-serif;font-weight:600;font-size:0.78rem;cursor:pointer;transition:all 0.2s;}
+  .pbtn:hover{border-color:var(--navy-400);color:var(--white);background:var(--white-5);}
+  .pinfo{font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--white-60);}
+
+  .loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--white-60);font-size:0.85rem;gap:12px;}
+  .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--navy-400);border-radius:50%;animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty{text-align:center;padding:60px;color:var(--white-60);font-size:0.85rem;}
+
+  .moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;}
+  .moverlay.open{display:flex;}
+  .modal{background:var(--navy-800);border:1px solid var(--border-bright);border-radius:20px;padding:32px;width:90%;max-width:500px;box-shadow:0 40px 80px rgba(0,0,0,0.6);}
+  .modal h2{font-size:1.1rem;color:var(--white);margin-bottom:6px;}
+  .modal p{font-size:0.8rem;color:var(--white-60);margin-bottom:24px;}
+  .mf{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+  .mf label{font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--white-60);text-transform:uppercase;letter-spacing:1px;}
+  .mf input{background:var(--navy-700);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--white);font-family:'Space Mono',monospace;font-size:0.75rem;outline:none;transition:border-color 0.2s;width:100%;}
+  .mf input:focus{border-color:var(--navy-400);box-shadow:0 0 0 3px rgba(42,125,214,0.2);}
+  .mactions{display:flex;gap:12px;margin-top:24px;}
+  .footer{text-align:center;padding:20px;font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--white-30);border-top:1px solid var(--border);}
+
+  @media(max-width:640px){
+    .topnav{padding:0 16px;}.wrap{padding:16px;}
+    .status-strip{flex-direction:column;}
+    .status-item{border-right:none;border-bottom:1px solid var(--border);}
+    .status-item:last-child{border-bottom:none;}
+  }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 22.8" style="height:22px;fill:#fff">
+      <path d="M0,18.36v-6.74c0-2.44,2-4.44,4.44-4.44h15.62c2.45,0,4.44,2,4.44,4.44v4.98H4.62v-3.22h16.67v-1.76c0-.69-.54-1.22-1.22-1.22H4.44c-.69,0-1.22.54-1.22,1.22v6.74c0,.69.54,1.22,1.22,1.22h20.07v3.22H4.44c-2.44,0-4.44-2-4.44-4.44Z"/>
+      <path d="M28.08,22.8V.08h3.22v22.72h-3.22Z"/>
+      <path d="M34.88,4.52c0-2.44,2-4.44,4.44-4.44h14.37v3.22h-14.37c-.69,0-1.22.54-1.22,1.22v2.65h12.76v3.22h-12.76v12.4h-3.22s0-18.27,0-18.27Z"/>
+      <path d="M53.39,18.36v-1.49c0-2.45,2-4.44,4.44-4.44h15.44v3.19h-15.44c-.69,0-1.22.57-1.22,1.25v1.49c0,.69.54,1.22,1.22,1.22h16.84v-7.96c0-.69-.54-1.22-1.22-1.22h-19.35v-3.22h19.35c2.45,0,4.44,2,4.44,4.44v11.18h-20.07c-2.44,0-4.44-2-4.44-4.44h0Z"/>
+      <path d="M97.02,18.36v-6.74c0-2.44,2-4.44,4.44-4.44h15.62c2.45,0,4.44,2,4.44,4.44v4.98h-19.89v-3.22h16.67v-1.76c0-.69-.54-1.22-1.22-1.22h-15.62c-.69,0-1.22.54-1.22,1.22v6.74c0,.69.54,1.22,1.22,1.22h20.07v3.22h-20.07c-2.44,0-4.44-2-4.44-4.44Z"/>
+      <path d="M141.89,14.99l8.11,7.81h-4.62l-5.87-5.66c-.18-.15-.39-.27-.66-.39-.21-.09-.45-.15-.72-.15h-9.81v6.2h-3.22V.08h3.22v13.3h9.81c.27,0,.51-.03.72-.15h.06c.18-.06.36-.21.6-.39l5.87-5.66h4.62l-8.11,7.81Z"/>
+      <path d="M85.91,19.58c-.69,0-1.22-.54-1.22-1.22v-7.96h7.78v-3.22h-7.78V0h-3.22v7.18h-1.99v3.21h1.99v7.97c0,2.44,2,4.44,4.44,4.44h7.99v-3.22h-7.99Z"/>
+    </svg>
+    <div class="brand-sep"></div>
+    <div>
+      <div class="brand-title">Akıllı Sistem Paneli</div>
+      <div class="brand-sub">ESP32 · Supabase · GMT+3 Türkiye</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="live-pill">
+      <div class="live-dot"></div>
+      <span id="liveStatus">Bağlanıyor...</span>
+    </div>
+    <button class="btn-cfg" onclick="document.getElementById('cfgModal').classList.add('open')">⚙ Ayarlar</button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="status-strip">
+    <div class="status-item"><span class="status-lbl">Toplam Kayıt</span><span class="status-val" id="totalCount">—</span></div>
+    <div class="status-item"><span class="status-lbl">Son Veri</span><span class="status-val" id="lastTime">—</span></div>
+    <div class="status-item"><span class="status-lbl">Aralık Başı</span><span class="status-val" id="rangeStart">—</span></div>
+    <div class="status-item"><span class="status-lbl">Aralık Sonu</span><span class="status-val" id="rangeEnd">—</span></div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="fg"><label>Başlangıç</label><input type="datetime-local" id="startDate"></div>
+    <div class="fg"><label>Bitiş</label><input type="datetime-local" id="endDate"></div>
+    <div class="fg" style="max-width:155px">
+      <label>Hızlı Seçim</label>
+      <select id="quickRange" onchange="applyQuick()">
+        <option value="">Özel</option>
+        <option value="1h">Son 1 Saat</option>
+        <option value="6h">Son 6 Saat</option>
+        <option value="24h">Son 24 Saat</option>
+        <option value="7d" selected>Son 7 Gün</option>
+        <option value="30d">Son 30 Gün</option>
+        <option value="all">Tümü</option>
+      </select>
+    </div>
+    <div class="fg" style="max-width:145px">
+      <label>Çözünürlük</label>
+      <select id="resolution">
+        <option value="1">Her Kayıt</option>
+        <option value="5" selected>Her 5. Kayıt</option>
+        <option value="10">Her 10. Kayıt</option>
+        <option value="30">Her 30. Kayıt</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="loadData()">🔍 Filtrele</button>
+    <button class="btn btn-ghost" onclick="resetFilters()">↺ Sıfırla</button>
+  </div>
+
+  <div class="stat-grid">
+    <div class="sc temp"><span class="sc-icon">🌡️</span><div class="sc-lbl">Sıcaklık — Son</div><div class="sc-val" id="lastTemp">—</div><div class="sc-sub" id="avgTemp">Ort: —</div></div>
+    <div class="sc nem"><span class="sc-icon">💧</span><div class="sc-lbl">Nem — Son</div><div class="sc-val" id="lastNem">—</div><div class="sc-sub" id="avgNem">Ort: —</div></div>
+    <div class="sc isik"><span class="sc-icon">☀️</span><div class="sc-lbl">Işık — Son</div><div class="sc-val" id="lastIsik">—</div><div class="sc-sub" id="avgIsik">Ort: —</div></div>
+    <div class="sc hava"><span class="sc-icon">🌫️</span><div class="sc-lbl">Hava Kalitesi — Son</div><div class="sc-val" id="lastHava">—</div><div class="sc-sub" id="avgHava">Ort: —</div></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card"><div class="chart-hdr"><div class="chart-ttl"><span class="cdot" style="background:var(--temp-col)"></span>Sıcaklık (°C)</div><span class="chart-cnt" id="cntTemp">0 nokta</span></div><canvas id="cTemp"></canvas></div>
+    <div class="chart-card"><div class="chart-hdr"><div class="chart-ttl"><span class="cdot" style="background:var(--nem-col)"></span>Nem (%)</div><span class="chart-cnt" id="cntNem">0 nokta</span></div><canvas id="cNem"></canvas></div>
+    <div class="chart-card"><div class="chart-hdr"><div class="chart-ttl"><span class="cdot" style="background:var(--isik-col)"></span>Işık (lux)</div><span class="chart-cnt" id="cntIsik">0 nokta</span></div><canvas id="cIsik"></canvas></div>
+    <div class="chart-card"><div class="chart-hdr"><div class="chart-ttl"><span class="cdot" style="background:var(--hava-col)"></span>Hava Kalitesi CO₂ (ppm)</div><span class="chart-cnt" id="cntHava">0 nokta</span></div><canvas id="cHava"></canvas></div>
+  </div>
+
+  <div class="tbl-card">
+    <div class="tbl-hdr">
+      <div class="tbl-ttl">📋 Veri Tablosu</div>
+      <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV İndir</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Tarih & Saat (TR)</th><th>Sıcaklık °C</th><th>Nem %</th><th>Işık lux</th><th>Hava ppm</th></tr></thead>
+        <tbody id="tBody"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Yükleniyor...</div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pgn"></div>
+  </div>
+
+  <div class="footer">elfatek Akıllı Sistem · ESP32 Sensor Dashboard · Supabase · GMT+3 Türkiye</div>
+</div>
+
+<div class="moverlay" id="cfgModal">
+  <div class="modal">
+    <h2>⚙️ Bağlantı Ayarları</h2>
+    <p>Supabase proje bilgilerinizi girin. Tarayıcınızda saklanır.</p>
+    <div class="mf"><label>Project URL</label><input type="text" id="cfgUrl" placeholder="https://xxxx.supabase.co"></div>
+    <div class="mf"><label>Publishable API Key</label><input type="text" id="cfgKey" placeholder="sb_publishable_..."></div>
+    <div class="mactions">
+      <button class="btn btn-primary" onclick="saveConfig()">💾 Kaydet & Bağlan</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('cfgModal').classList.remove('open')">İptal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEF_URL = 'https://xjwugdlazfvtqkgkjczn.supabase.co';
+const DEF_KEY = 'sb_publishable_F8AnrUWRlHAMKpThAJLwZQ_mS1OYvEr';
+const TZ = 'Europe/Istanbul';
+
+let allData=[], currentPage=1, charts={};
+const PAGE=50;
+
+const getCfg=()=>({url:localStorage.getItem('sb_url')||DEF_URL, key:localStorage.getItem('sb_key')||DEF_KEY});
+
+function saveConfig(){
+  const u=document.getElementById('cfgUrl').value.trim(), k=document.getElementById('cfgKey').value.trim();
+  if(!u||!k)return alert('Boş bırakılamaz!');
+  localStorage.setItem('sb_url',u); localStorage.setItem('sb_key',k);
+  document.getElementById('cfgModal').classList.remove('open'); loadData();
+}
+
+window.onload=()=>{
+  const c=getCfg();
+  document.getElementById('cfgUrl').value=c.url;
+  document.getElementById('cfgKey').value=c.key;
+  applyQuick(); initCharts(); loadData();
+};
+
+function localFmt(date){
+  const pad=n=>String(n).padStart(2,'0');
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function applyQuick(){
+  const v=document.getElementById('quickRange').value;
+  const now=new Date();
+  if(v==='all'){
+    document.getElementById('startDate').value='';
+    document.getElementById('endDate').value='';
+  } else if(v){
+    const ms={'1h':3600000,'6h':21600000,'24h':86400000,'7d':604800000,'30d':2592000000};
+    document.getElementById('startDate').value=localFmt(new Date(now-ms[v]));
+    document.getElementById('endDate').value=localFmt(now);
+  }
+}
+
+function resetFilters(){
+  document.getElementById('quickRange').value='7d';
+  document.getElementById('resolution').value='5';
+  applyQuick(); loadData();
+}
+
+async function loadData(){
+  const cfg=getCfg();
+  document.getElementById('liveStatus').textContent='Yükleniyor...';
+  document.getElementById('tBody').innerHTML='<tr><td colspan="6"><div class="loading"><div class="spinner"></div>Supabase\'den çekiliyor...</div></td></tr>';
+
+  const s=document.getElementById('startDate').value;
+  const e=document.getElementById('endDate').value;
+
+  let url=`${cfg.url}/rest/v1/sensor_data?select=*&order=timestamp.desc&limit=10000`;
+  if(s) url+=`&timestamp=gte.${s.replace('T',' ')}:00`;
+  if(e) url+=`&timestamp=lte.${e.replace('T',' ')}:00`;
+
+  try{
+    const res=await fetch(url,{headers:{'apikey':cfg.key,'Authorization':`Bearer ${cfg.key}`}});
+    if(!res.ok){const er=await res.json(); throw new Error(er.message||res.status);}
+    allData=(await res.json()).reverse();
+
+    document.getElementById('liveStatus').textContent=`${allData.length} kayıt`;
+    document.getElementById('totalCount').textContent=allData.length.toLocaleString('tr-TR');
+
+    if(allData.length>0){
+      const first=allData[0], last=allData[allData.length-1];
+      document.getElementById('lastTime').textContent=fmtDate(last.timestamp);
+      document.getElementById('rangeStart').textContent=fmtDate(first.timestamp);
+      document.getElementById('rangeEnd').textContent=fmtDate(last.timestamp);
+    }
+    updateStats(); updateCharts(); currentPage=1; renderTable();
+  }catch(err){
+    document.getElementById('liveStatus').textContent='Hata!';
+    document.getElementById('tBody').innerHTML=`<tr><td colspan="6"><div class="empty">❌ ${err.message}</div></td></tr>`;
+  }
+}
+
+const avg=(arr,k)=>{
+  const v=arr.map(d=>d[k]).filter(x=>x!=null);
+  return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):null;
+};
+
+function updateStats(){
+  if(!allData.length)return;
+  const l=allData[allData.length-1];
+  document.getElementById('lastTemp').textContent=l.sicaklik!=null?l.sicaklik.toFixed(1)+' °C':'—';
+  document.getElementById('lastNem').textContent=l.nem!=null?l.nem.toFixed(1)+' %':'—';
+  document.getElementById('lastIsik').textContent=l.isik!=null?l.isik.toFixed(0)+' lx':'—';
+  document.getElementById('lastHava').textContent=l.hava_kalitesi!=null?l.hava_kalitesi+' ppm':'—';
+  document.getElementById('avgTemp').textContent='Ort: '+(avg(allData,'sicaklik')??'—')+' °C';
+  document.getElementById('avgNem').textContent='Ort: '+(avg(allData,'nem')??'—')+' %';
+  document.getElementById('avgIsik').textContent='Ort: '+(avg(allData,'isik')??'—')+' lx';
+  document.getElementById('avgHava').textContent='Ort: '+(avg(allData,'hava_kalitesi')??'—')+' ppm';
+}
+
+const mkCfg=(color,label)=>({
+  type:'line',
+  data:{labels:[],datasets:[{label,data:[],borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:0,tension:0.4,fill:true}]},
+  options:{responsive:true,maintainAspectRatio:true,animation:{duration:300},plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{color:'rgba(255,255,255,0.35)',font:{family:'Space Mono',size:9},maxTicksLimit:6},grid:{color:'rgba(255,255,255,0.05)'},border:{color:'rgba(255,255,255,0.1)'}},
+      y:{ticks:{color:'rgba(255,255,255,0.35)',font:{family:'Space Mono',size:9}},grid:{color:'rgba(255,255,255,0.05)'},border:{color:'rgba(255,255,255,0.1)'}}
+    }}
+});
+
+function initCharts(){
+  charts.temp=new Chart(document.getElementById('cTemp'),mkCfg('rgb(255,124,71)','Sıcaklık'));
+  charts.nem =new Chart(document.getElementById('cNem'), mkCfg('rgb(91,159,224)','Nem'));
+  charts.isik=new Chart(document.getElementById('cIsik'),mkCfg('rgb(255,216,74)','Işık'));
+  charts.hava=new Chart(document.getElementById('cHava'),mkCfg('rgb(34,211,144)','CO₂'));
+}
+
+function updateCharts(){
+  const r=parseInt(document.getElementById('resolution').value);
+  const s=allData.filter((_,i)=>i%r===0);
+  const lbs=s.map(d=>fmtShort(d.timestamp));
+  const up=(c,k,el)=>{c.data.labels=lbs;c.data.datasets[0].data=s.map(d=>d[k]);c.update('none');document.getElementById(el).textContent=s.length.toLocaleString('tr-TR')+' nokta';};
+  up(charts.temp,'sicaklik','cntTemp');
+  up(charts.nem,'nem','cntNem');
+  up(charts.isik,'isik','cntIsik');
+  up(charts.hava,'hava_kalitesi','cntHava');
+}
+
+function renderTable(){
+  const st=(currentPage-1)*PAGE;
+  const pg=[...allData].reverse().slice(st,st+PAGE);
+  if(!pg.length){
+    document.getElementById('tBody').innerHTML='<tr><td colspan="6"><div class="empty">📭 Veri bulunamadı</div></td></tr>';
+    document.getElementById('pgn').innerHTML=''; return;
+  }
+  document.getElementById('tBody').innerHTML=pg.map((d,i)=>`
+    <tr>
+      <td style="color:rgba(255,255,255,0.3);font-family:'Space Mono',monospace;font-size:0.7rem">${allData.length-st-i}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:0.7rem;color:rgba(255,255,255,0.6)">${fmtDate(d.timestamp)}</td>
+      <td style="color:var(--temp-col);font-weight:600">${d.sicaklik!=null?d.sicaklik.toFixed(2)+' °C':'—'}</td>
+      <td style="color:var(--nem-col);font-weight:600">${d.nem!=null?d.nem.toFixed(2)+' %':'—'}</td>
+      <td style="color:var(--isik-col);font-weight:600">${d.isik!=null?d.isik.toFixed(1)+' lx':'—'}</td>
+      <td style="color:var(--hava-col);font-weight:600">${d.hava_kalitesi!=null?d.hava_kalitesi+' ppm':'—'}</td>
+    </tr>`).join('');
+  renderPgn();
+}
+
+function renderPgn(){
+  const tp=Math.ceil(allData.length/PAGE);
+  if(tp<=1){document.getElementById('pgn').innerHTML='';return;}
+  let h='';
+  if(currentPage>1)h+=`<button class="pbtn" onclick="goPage(${currentPage-1})">← Önceki</button>`;
+  h+=`<span class="pinfo">${currentPage} / ${tp}</span>`;
+  if(currentPage<tp)h+=`<button class="pbtn" onclick="goPage(${currentPage+1})">Sonraki →</button>`;
+  document.getElementById('pgn').innerHTML=h;
+}
+
+function goPage(p){currentPage=p;renderTable();document.querySelector('.tbl-card').scrollIntoView({behavior:'smooth'});}
+
+function exportCSV(){
+  if(!allData.length)return alert('Önce veri yükleyin!');
+  const hdr='Tarih_TR,Sicaklik_C,Nem_%,Isik_lux,Hava_ppm\n';
+  const rows=allData.map(d=>`${fmtDate(d.timestamp)},${d.sicaklik??''},${d.nem??''},${d.isik??''},${d.hava_kalitesi??''}`).join('\n');
+  const blob=new Blob(['\uFEFF'+hdr+rows],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`elfatek_sensor_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+}
+
+function fmtDate(ts){
+  if(!ts)return'—';
+  return new Date(ts).toLocaleString('tr-TR',{timeZone:TZ,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function fmtShort(ts){
+  if(!ts)return'';
+  return new Date(ts).toLocaleString('tr-TR',{timeZone:TZ,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+</script>
+</body>
+</html>
