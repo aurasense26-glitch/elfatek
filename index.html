@@ -175,6 +175,17 @@
     <div class="status-item"><span class="status-lbl">Aralık Sonu</span><span class="status-val" id="rangeEnd">—</span></div>
   </div>
 
+  <div class="settings-card" style="background:var(--navy-800);border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-bottom:24px;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;">
+    <div class="fg" style="flex:0 1 200px">
+      <label>🎯 Hedef Lux Değeri</label>
+      <input type="number" id="hedefLuxInput" min="50" max="5000" placeholder="500">
+    </div>
+    <button class="btn btn-primary" onclick="ayariKaydet()">💾 Kaydet</button>
+    <div id="ayarStatus" style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--white-60);margin-left:auto;">
+      Mevcut hedef: <span id="mevcutHedef" style="color:var(--isik-col);font-weight:700">—</span> lx
+    </div>
+  </div>
+
   <div class="filter-bar">
     <div class="fg"><label>Başlangıç</label><input type="datetime-local" id="startDate"></div>
     <div class="fg"><label>Bitiş</label><input type="datetime-local" id="endDate"></div>
@@ -268,8 +279,56 @@ window.onload=()=>{
   const c=getCfg();
   document.getElementById('cfgUrl').value=c.url;
   document.getElementById('cfgKey').value=c.key;
-  applyQuick(); initCharts(); loadData();
+  applyQuick(); initCharts(); loadData(); ayarlariYukle();
+  setInterval(ayarlariYukle, 10000); // Her 10 sn ayarları yenile
 };
+
+// --- AYARLAR YÖNETİMİ ---
+async function ayarlariYukle(){
+  const cfg=getCfg();
+  try{
+    const res=await fetch(`${cfg.url}/rest/v1/ayarlar?select=hedef_lux&id=eq.1`,{
+      headers:{'apikey':cfg.key,'Authorization':`Bearer ${cfg.key}`}
+    });
+    if(!res.ok)return;
+    const d=await res.json();
+    if(d.length>0){
+      document.getElementById('mevcutHedef').textContent=d[0].hedef_lux;
+      const inp=document.getElementById('hedefLuxInput');
+      if(document.activeElement!==inp) inp.value=d[0].hedef_lux;
+    }
+  }catch(e){console.error('Ayar yükleme hatası:',e);}
+}
+
+async function ayariKaydet(){
+  const cfg=getCfg();
+  const yeni=parseInt(document.getElementById('hedefLuxInput').value);
+  if(!yeni||yeni<50||yeni>5000){alert('Geçerli bir değer girin (50-5000)!');return;}
+  const btn=event.target;
+  const eski=btn.textContent;
+  btn.textContent='Kaydediliyor...';
+  btn.disabled=true;
+  try{
+    const res=await fetch(`${cfg.url}/rest/v1/ayarlar?id=eq.1`,{
+      method:'PATCH',
+      headers:{
+        'apikey':cfg.key,
+        'Authorization':`Bearer ${cfg.key}`,
+        'Content-Type':'application/json',
+        'Prefer':'return=minimal'
+      },
+      body:JSON.stringify({hedef_lux:yeni,guncelleme_zamani:new Date().toISOString()})
+    });
+    if(!res.ok)throw new Error('Kaydetme başarısız: '+res.status);
+    btn.textContent='✓ Kaydedildi!';
+    document.getElementById('mevcutHedef').textContent=yeni;
+    setTimeout(()=>{btn.textContent=eski;btn.disabled=false;},1500);
+  }catch(e){
+    alert('Hata: '+e.message);
+    btn.textContent=eski;
+    btn.disabled=false;
+  }
+}
 
 function localFmt(date){
   const pad=n=>String(n).padStart(2,'0');
