@@ -175,6 +175,52 @@
     <div class="status-item"><span class="status-lbl">Aralık Sonu</span><span class="status-val" id="rangeEnd">—</span></div>
   </div>
 
+  <div class="settings-card" style="background:var(--navy-800);border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-bottom:24px;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;">
+    <div class="fg" style="flex:0 1 160px">
+      <label>🎯 Hedef Lux</label>
+      <input type="number" id="hedefLuxInput" min="50" max="5000" placeholder="500">
+    </div>
+    <div class="fg" style="flex:0 1 160px">
+      <label>💰 kWh Fiyatı (TL)</label>
+      <input type="number" id="kwhFiyatiInput" min="0" step="0.01" placeholder="3.5">
+    </div>
+    <div class="fg" style="flex:0 1 160px">
+      <label>💡 LED Güç (Watt)</label>
+      <input type="number" id="ledGucInput" min="0.1" step="0.1" placeholder="0.7">
+    </div>
+    <button class="btn btn-primary" onclick="ayariKaydet()">💾 Kaydet</button>
+    <div id="ayarStatus" style="font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--white-60);margin-left:auto;line-height:1.6">
+      Hedef: <span id="mevcutHedef" style="color:var(--isik-col);font-weight:700">—</span> lx<br>
+      Fiyat: <span id="mevcutFiyat" style="color:var(--success);font-weight:700">—</span> TL/kWh<br>
+      Güç: <span id="mevcutGuc" style="color:var(--warn);font-weight:700">—</span> W
+    </div>
+  </div>
+
+  <div class="enerji-card" style="background:linear-gradient(135deg,var(--navy-800),var(--navy-700));border:1px solid var(--border-bright);border-radius:16px;padding:22px;margin-bottom:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+      <div style="font-size:0.95rem;font-weight:700;color:var(--white);">⚡ Enerji Tüketimi Analizi</div>
+      <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--white-60);">Seçili zaman aralığına göre hesaplanır</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;">
+      <div style="background:var(--navy-900);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--white-60);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">LED Çalışma Süresi</div>
+        <div id="ledSure" style="font-size:1.6rem;font-weight:700;color:var(--warn);line-height:1">0 saat</div>
+      </div>
+      <div style="background:var(--navy-900);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--white-60);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Ortalama Güç</div>
+        <div id="ortGuc" style="font-size:1.6rem;font-weight:700;color:var(--nem-col);line-height:1">0 W</div>
+      </div>
+      <div style="background:var(--navy-900);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--white-60);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Toplam Enerji</div>
+        <div id="toplamEnerji" style="font-size:1.6rem;font-weight:700;color:var(--isik-col);line-height:1">0 kWh</div>
+      </div>
+      <div style="background:var(--navy-900);border:1px solid var(--border-bright);border-radius:12px;padding:16px;box-shadow:0 0 20px rgba(34,211,144,0.15)">
+        <div style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--white-60);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">💵 Toplam Maliyet</div>
+        <div id="toplamMaliyet" style="font-size:1.8rem;font-weight:700;color:var(--success);line-height:1">0.00 TL</div>
+      </div>
+    </div>
+  </div>
+
   <div class="filter-bar">
     <div class="fg"><label>Başlangıç</label><input type="datetime-local" id="startDate"></div>
     <div class="fg"><label>Bitiş</label><input type="datetime-local" id="endDate"></div>
@@ -268,8 +314,94 @@ window.onload=()=>{
   const c=getCfg();
   document.getElementById('cfgUrl').value=c.url;
   document.getElementById('cfgKey').value=c.key;
-  applyQuick(); initCharts(); loadData();
+  applyQuick(); initCharts(); loadData(); ayarlariYukle();
+  setInterval(ayarlariYukle, 10000);
 };
+
+async function ayarlariYukle(){
+  const cfg=getCfg();
+  try{
+    const res=await fetch(`${cfg.url}/rest/v1/ayarlar?select=*&id=eq.1`,{
+      headers:{'apikey':cfg.key,'Authorization':`Bearer ${cfg.key}`}
+    });
+    if(!res.ok)return;
+    const d=await res.json();
+    if(d.length>0){
+      const a=d[0];
+      document.getElementById('mevcutHedef').textContent=a.hedef_lux;
+      document.getElementById('mevcutFiyat').textContent=parseFloat(a.kwh_fiyati).toFixed(2);
+      document.getElementById('mevcutGuc').textContent=a.led_guc_watt;
+      const i1=document.getElementById('hedefLuxInput');
+      const i2=document.getElementById('kwhFiyatiInput');
+      const i3=document.getElementById('ledGucInput');
+      if(document.activeElement!==i1) i1.value=a.hedef_lux;
+      if(document.activeElement!==i2) i2.value=a.kwh_fiyati;
+      if(document.activeElement!==i3) i3.value=a.led_guc_watt;
+      window._ayarlar=a;
+      enerjiHesapla();
+    }
+  }catch(e){console.error('Ayar hatası:',e);}
+}
+
+async function ayariKaydet(){
+  const cfg=getCfg();
+  const hedef=parseInt(document.getElementById('hedefLuxInput').value);
+  const fiyat=parseFloat(document.getElementById('kwhFiyatiInput').value);
+  const guc=parseFloat(document.getElementById('ledGucInput').value);
+  if(!hedef||hedef<50||hedef>5000){alert('Hedef Lux: 50-5000 arası!');return;}
+  if(isNaN(fiyat)||fiyat<0){alert('Geçerli kWh fiyatı girin!');return;}
+  if(!guc||guc<0.1){alert('LED gücü en az 0.1W olmalı!');return;}
+  const btn=event.target;
+  const eski=btn.textContent;
+  btn.textContent='Kaydediliyor...';
+  btn.disabled=true;
+  try{
+    const res=await fetch(`${cfg.url}/rest/v1/ayarlar?id=eq.1`,{
+      method:'PATCH',
+      headers:{'apikey':cfg.key,'Authorization':`Bearer ${cfg.key}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({hedef_lux:hedef,kwh_fiyati:fiyat,led_guc_watt:guc,guncelleme_zamani:new Date().toISOString()})
+    });
+    if(!res.ok)throw new Error('Kaydetme başarısız: '+res.status);
+    btn.textContent='✓ Kaydedildi!';
+    document.getElementById('mevcutHedef').textContent=hedef;
+    document.getElementById('mevcutFiyat').textContent=fiyat.toFixed(2);
+    document.getElementById('mevcutGuc').textContent=guc;
+    window._ayarlar={hedef_lux:hedef,kwh_fiyati:fiyat,led_guc_watt:guc};
+    enerjiHesapla();
+    setTimeout(()=>{btn.textContent=eski;btn.disabled=false;},1500);
+  }catch(e){alert('Hata: '+e.message);btn.textContent=eski;btn.disabled=false;}
+}
+
+function enerjiHesapla(){
+  if(!allData||allData.length<2||!window._ayarlar)return;
+  const guc=parseFloat(window._ayarlar.led_guc_watt)||0.7;
+  const fiyat=parseFloat(window._ayarlar.kwh_fiyati)||3.5;
+  const hedef=parseInt(window._ayarlar.hedef_lux)||500;
+  let toplamWh=0,calismaSaat=0,aktifOrtGuc=0,aktifSayac=0;
+  for(let i=1;i<allData.length;i++){
+    const lx=allData[i].isik;
+    if(lx==null)continue;
+    let duty=0;
+    if(lx<hedef){
+      const pwm=Math.max(0,Math.min(255,Math.round((1-lx/hedef)*255)));
+      duty=pwm/255;
+    }
+    const t1=new Date(allData[i-1].timestamp).getTime();
+    const t2=new Date(allData[i].timestamp).getTime();
+    const dtSaat=(t2-t1)/3600000;
+    if(dtSaat>0.5||dtSaat<0)continue;
+    const anlik=guc*duty;
+    toplamWh+=anlik*dtSaat;
+    if(duty>0){calismaSaat+=dtSaat;aktifOrtGuc+=anlik;aktifSayac++;}
+  }
+  const kwh=toplamWh/1000;
+  const maliyet=kwh*fiyat;
+  const ortGuc=aktifSayac>0?aktifOrtGuc/aktifSayac:0;
+  document.getElementById('ledSure').textContent=calismaSaat<1?(calismaSaat*60).toFixed(1)+' dk':calismaSaat.toFixed(2)+' saat';
+  document.getElementById('ortGuc').textContent=ortGuc.toFixed(2)+' W';
+  document.getElementById('toplamEnerji').textContent=kwh.toFixed(4)+' kWh';
+  document.getElementById('toplamMaliyet').textContent=maliyet.toFixed(3)+' TL';
+}
 
 function localFmt(date){
   const pad=n=>String(n).padStart(2,'0');
@@ -321,7 +453,7 @@ async function loadData(){
       document.getElementById('rangeStart').textContent=fmtDate(first.timestamp);
       document.getElementById('rangeEnd').textContent=fmtDate(last.timestamp);
     }
-    updateStats(); updateCharts(); currentPage=1; renderTable();
+    updateStats(); updateCharts(); currentPage=1; renderTable(); enerjiHesapla();
   }catch(err){
     document.getElementById('liveStatus').textContent='Hata!';
     document.getElementById('tBody').innerHTML=`<tr><td colspan="6"><div class="empty">❌ ${err.message}</div></td></tr>`;
