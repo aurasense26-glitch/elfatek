@@ -769,20 +769,26 @@ async function exportPDF(){
     const a = window._ayarlar || {};
     
     // Roboto fontu yükle (Türkçe karakter desteği için)
-    const fontUrl = 'https://cdn.jsdelivr.net/gh/googlefonts/roboto@main/src/hinted/Roboto-Regular.ttf';
-    const fontBoldUrl = 'https://cdn.jsdelivr.net/gh/googlefonts/roboto@main/src/hinted/Roboto-Bold.ttf';
+    const fontUrl = 'https://fonts.cdnfonts.com/s/12165/Roboto-Regular.woff';
+    const fontBoldUrl = 'https://fonts.cdnfonts.com/s/12165/Roboto-Bold.woff';
     
-    const toBase64 = async (url) => {
-      const res = await fetch(url);
-      const buf = await res.arrayBuffer();
+    // Daha güvenilir: Google Fonts API
+    const loadFont = async (family, weight) => {
+      const cssUrl = `https://fonts.googleapis.com/css2?family=${family}:wght@${weight}&display=swap`;
+      const cssRes = await fetch(cssUrl);
+      const cssText = await cssRes.text();
+      const match = cssText.match(/url\((https[^)]+\.ttf)\)/);
+      if(!match) throw new Error('Font URL bulunamadı');
+      const fontRes = await fetch(match[1]);
+      const buf = await fontRes.arrayBuffer();
       let binary = '';
       const bytes = new Uint8Array(buf);
       for(let i=0; i<bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
       return btoa(binary);
     };
     
-    const regFont = await toBase64(fontUrl);
-    const boldFont = await toBase64(fontBoldUrl);
+    const regFont = await loadFont('Roboto', '400');
+    const boldFont = await loadFont('Roboto', '700');
     
     doc.addFileToVFS('Roboto-Regular.ttf', regFont);
     doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
