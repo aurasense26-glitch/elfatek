@@ -757,6 +757,16 @@ function fmtShort(ts){
 
 function exportPDF(){
   if(!allData.length){alert('Önce veri yükleyin!');return;}
+  
+  // Türkçe karakter sorununu çözmek için metinleri düzeltici fonksiyon
+  const tr = (s) => String(s)
+    .replace(/İ/g,'I').replace(/ı/g,'i')
+    .replace(/Ş/g,'S').replace(/ş/g,'s')
+    .replace(/Ğ/g,'G').replace(/ğ/g,'g')
+    .replace(/Ç/g,'C').replace(/ç/g,'c')
+    .replace(/Ü/g,'U').replace(/ü/g,'u')
+    .replace(/Ö/g,'O').replace(/ö/g,'o');
+  
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p','mm','a4');
   const a = window._ayarlar || {};
@@ -767,18 +777,18 @@ function exportPDF(){
   doc.setTextColor(255,255,255);
   doc.setFontSize(18);
   doc.setFont(undefined,'bold');
-  doc.text('elfatek - Akilli Sistem Raporu', 14, 15);
+  doc.text(tr('elfatek - Akıllı Sistem Raporu'), 14, 15);
   doc.setFontSize(10);
   doc.setFont(undefined,'normal');
-  doc.text('ESP32 IoT Cevre Izleme ve Otomasyon', 14, 22);
+  doc.text(tr('ESP32 IoT Çevre İzleme ve Otomasyon'), 14, 22);
   const simdi = new Date().toLocaleString('tr-TR',{timeZone:TZ});
-  doc.text('Olusturulma: '+simdi, 14, 28);
+  doc.text(tr('Oluşturulma: ')+simdi, 14, 28);
   
   // Rapor bilgileri
   doc.setTextColor(0,0,0);
   doc.setFontSize(13);
   doc.setFont(undefined,'bold');
-  doc.text('Rapor Ozeti', 14, 48);
+  doc.text(tr('Rapor Özeti'), 14, 48);
   
   const first = allData[0], last = allData[allData.length-1];
   const baslangic = fmtDate(first.timestamp);
@@ -788,14 +798,14 @@ function exportPDF(){
   doc.setFont(undefined,'normal');
   doc.autoTable({
     startY: 52,
-    head:[['Parametre','Deger']],
+    head:[[tr('Parametre'),tr('Değer')]],
     body:[
-      ['Kayit Sayisi', allData.length.toLocaleString('tr-TR')],
-      ['Baslangic', baslangic],
-      ['Bitis', bitis],
-      ['Hedef Lux', (a.hedef_lux||'-')+' lx'],
-      ['LED Gucu', (a.led_guc_watt||'-')+' W'],
-      ['kWh Fiyati', (a.kwh_fiyati?parseFloat(a.kwh_fiyati).toFixed(2):'-')+' TL']
+      [tr('Kayıt Sayısı'), allData.length.toLocaleString('tr-TR')],
+      [tr('Başlangıç'), baslangic],
+      [tr('Bitiş'), bitis],
+      [tr('Hedef Lux'), (a.hedef_lux||'-')+' lx'],
+      [tr('LED Gücü'), (a.led_guc_watt||'-')+' W'],
+      [tr('kWh Fiyatı'), (a.kwh_fiyati?parseFloat(a.kwh_fiyati).toFixed(2):'-')+' TL']
     ],
     theme:'striped',
     headStyles:{fillColor:[21,85,158],textColor:255},
@@ -806,7 +816,7 @@ function exportPDF(){
   let y = doc.lastAutoTable.finalY + 8;
   doc.setFontSize(13);
   doc.setFont(undefined,'bold');
-  doc.text('Sensor Verileri', 14, y);
+  doc.text(tr('Sensör Verileri'), 14, y);
   
   const ort = (k) => {
     const v = allData.map(d=>d[k]).filter(x=>x!=null);
@@ -823,12 +833,12 @@ function exportPDF(){
   
   doc.autoTable({
     startY: y+4,
-    head:[['Parametre','Ortalama','Minimum','Maksimum']],
+    head:[[tr('Parametre'),tr('Ortalama'),tr('Minimum'),tr('Maksimum')]],
     body:[
-      ['Sicaklik (C)', ort('sicaklik'), mn('sicaklik'), mx('sicaklik')],
-      ['Nem (%)', ort('nem'), mn('nem'), mx('nem')],
-      ['Isik (lux)', ort('isik'), mn('isik'), mx('isik')],
-      ['Hava Kalitesi (ppm)', ort('hava_kalitesi'), mn('hava_kalitesi'), mx('hava_kalitesi')]
+      [tr('Sıcaklık (°C)'), ort('sicaklik'), mn('sicaklik'), mx('sicaklik')],
+      [tr('Nem (%)'), ort('nem'), mn('nem'), mx('nem')],
+      [tr('Işık (lux)'), ort('isik'), mn('isik'), mx('isik')],
+      [tr('Hava Kalitesi (ppm)'), ort('hava_kalitesi'), mn('hava_kalitesi'), mx('hava_kalitesi')]
     ],
     theme:'striped',
     headStyles:{fillColor:[21,85,158],textColor:255},
@@ -839,7 +849,7 @@ function exportPDF(){
   y = doc.lastAutoTable.finalY + 8;
   doc.setFontSize(13);
   doc.setFont(undefined,'bold');
-  doc.text('Enerji Tuketimi ve Maliyet', 14, y);
+  doc.text(tr('Enerji Tüketimi ve Maliyet'), 14, y);
   
   const sure = document.getElementById('ledSure').textContent;
   const gucOrt = document.getElementById('ortGuc').textContent;
@@ -848,12 +858,12 @@ function exportPDF(){
   
   doc.autoTable({
     startY: y+4,
-    head:[['Parametre','Deger']],
+    head:[[tr('Parametre'),tr('Değer')]],
     body:[
-      ['LED Calisma Suresi', sure],
-      ['Ortalama Guc', gucOrt],
-      ['Toplam Enerji', enerji],
-      ['Toplam Maliyet', maliyet]
+      [tr('LED Çalışma Süresi'), tr(sure)],
+      [tr('Ortalama Güç'), gucOrt],
+      [tr('Toplam Enerji'), enerji],
+      [tr('Toplam Maliyet'), maliyet]
     ],
     theme:'striped',
     headStyles:{fillColor:[34,211,144],textColor:255},
@@ -865,7 +875,7 @@ function exportPDF(){
   if(y > 240) { doc.addPage(); y = 20; }
   doc.setFontSize(13);
   doc.setFont(undefined,'bold');
-  doc.text('Veri Ornekleri (Tum Aralıktan)', 14, y);
+  doc.text(tr('Veri Örnekleri (Tüm Aralıktan)'), 14, y);
   
   let ornekler = [];
   if(allData.length <= 30){
@@ -880,13 +890,13 @@ function exportPDF(){
   
   doc.autoTable({
     startY: y+4,
-    head:[['Tarih','Sic (C)','Nem (%)','Isik (lx)','Hava (ppm)']],
+    head:[[tr('Tarih'),tr('Sıc (°C)'),tr('Nem (%)'),tr('Işık (lx)'),tr('Hava (ppm)')]],
     body: ornekler.map(d=>[
       fmtDate(d.timestamp),
       d.sicaklik!=null?d.sicaklik.toFixed(1):'-',
       d.nem!=null?d.nem.toFixed(1):'-',
       d.isik!=null?d.isik.toFixed(0):'-',
-      d.hava_kalitesi!=null?d.hava_kalitesi:'-'
+      d.hava_kalitesi!=null?String(d.hava_kalitesi):'-'
     ]),
     theme:'grid',
     headStyles:{fillColor:[21,85,158],textColor:255},
@@ -900,7 +910,7 @@ function exportPDF(){
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text('elfatek Akilli Sistem · Sayfa '+i+' / '+sayfaSayisi, 14, 290);
+    doc.text(tr('elfatek Akıllı Sistem')+' · '+tr('Sayfa ')+i+' / '+sayfaSayisi, 14, 290);
     doc.text('aurasense26-glitch.github.io/elfatek', 150, 290);
   }
   
