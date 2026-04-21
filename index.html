@@ -196,6 +196,49 @@
     </div>
   </div>
 
+  <div class="manuel-card" style="background:var(--navy-800);border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-bottom:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+      <div style="font-size:0.95rem;font-weight:700;color:var(--white);">🎮 LED Manuel Kontrol</div>
+      <div id="modDurum" style="font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--success);font-weight:700">Mod: OTOMATİK</div>
+    </div>
+    
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:18px;">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
+        <input type="checkbox" id="manuelToggle" onchange="modDegistir()" style="width:0;height:0;opacity:0;position:absolute">
+        <span id="toggleVisual" style="width:50px;height:26px;background:var(--white-10);border:1px solid var(--border-bright);border-radius:100px;position:relative;transition:all 0.3s">
+          <span id="toggleKnob" style="position:absolute;width:20px;height:20px;background:var(--white-60);border-radius:50%;top:2px;left:2px;transition:all 0.3s"></span>
+        </span>
+        <span style="font-size:0.85rem;font-weight:600;color:var(--white-90)">Manuel Kontrol</span>
+      </label>
+      <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--white-60);margin-left:auto">Kapalıyken Daylight Harvesting aktif</div>
+    </div>
+    
+    <div id="sliderArea" style="opacity:0.4;pointer-events:none;transition:opacity 0.3s;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--white-60);text-transform:uppercase;letter-spacing:1.5px;">LED Parlaklığı</span>
+        <span id="sliderDeger" style="font-size:1rem;font-weight:700;color:var(--isik-col);font-family:'Space Mono',monospace">%50</span>
+      </div>
+      <input type="range" id="pwmSlider" min="0" max="255" value="128" 
+        oninput="document.getElementById('sliderDeger').textContent='%'+Math.round(this.value/2.55)"
+        onchange="pwmGonder(this.value)"
+        style="width:100%;height:8px;border-radius:4px;background:linear-gradient(to right,var(--navy-700),var(--isik-col));outline:none;cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:'Space Mono',monospace;font-size:0.55rem;color:var(--white-30)">
+        <span>KAPALI</span>
+        <span>%25</span>
+        <span>%50</span>
+        <span>%75</span>
+        <span>TAM</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="hizliAyar(0)" style="padding:6px 14px;font-size:0.75rem">⚫ Kapat</button>
+        <button class="btn btn-ghost" onclick="hizliAyar(64)" style="padding:6px 14px;font-size:0.75rem">%25</button>
+        <button class="btn btn-ghost" onclick="hizliAyar(128)" style="padding:6px 14px;font-size:0.75rem">%50</button>
+        <button class="btn btn-ghost" onclick="hizliAyar(191)" style="padding:6px 14px;font-size:0.75rem">%75</button>
+        <button class="btn btn-ghost" onclick="hizliAyar(255)" style="padding:6px 14px;font-size:0.75rem">☀️ Tam</button>
+      </div>
+    </div>
+  </div>
+
   <div class="enerji-card" style="background:linear-gradient(135deg,var(--navy-800),var(--navy-700));border:1px solid var(--border-bright);border-radius:16px;padding:22px;margin-bottom:24px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
       <div style="font-size:0.95rem;font-weight:700;color:var(--white);">⚡ Enerji Tüketimi Analizi</div>
@@ -337,10 +380,77 @@ async function ayarlariYukle(){
       if(document.activeElement!==i1) i1.value=a.hedef_lux;
       if(document.activeElement!==i2) i2.value=a.kwh_fiyati;
       if(document.activeElement!==i3) i3.value=a.led_guc_watt;
+      
+      // Manuel mod durumu
+      const tog=document.getElementById('manuelToggle');
+      const slider=document.getElementById('pwmSlider');
+      if(document.activeElement!==slider){
+        tog.checked=a.manuel_mod;
+        slider.value=a.manuel_pwm;
+        document.getElementById('sliderDeger').textContent='%'+Math.round(a.manuel_pwm/2.55);
+        guncelleModGorsel(a.manuel_mod);
+      }
+      
       window._ayarlar=a;
       enerjiHesapla();
     }
   }catch(e){console.error('Ayar hatası:',e);}
+}
+
+function guncelleModGorsel(manuel){
+  const tv=document.getElementById('toggleVisual');
+  const tk=document.getElementById('toggleKnob');
+  const sa=document.getElementById('sliderArea');
+  const md=document.getElementById('modDurum');
+  if(manuel){
+    tv.style.background='var(--success)';
+    tv.style.borderColor='var(--success)';
+    tk.style.left='26px';
+    tk.style.background='#fff';
+    sa.style.opacity='1';
+    sa.style.pointerEvents='auto';
+    md.textContent='Mod: MANUEL';
+    md.style.color='var(--warn)';
+  }else{
+    tv.style.background='var(--white-10)';
+    tv.style.borderColor='var(--border-bright)';
+    tk.style.left='2px';
+    tk.style.background='var(--white-60)';
+    sa.style.opacity='0.4';
+    sa.style.pointerEvents='none';
+    md.textContent='Mod: OTOMATİK';
+    md.style.color='var(--success)';
+  }
+}
+
+async function modDegistir(){
+  const manuel=document.getElementById('manuelToggle').checked;
+  guncelleModGorsel(manuel);
+  const cfg=getCfg();
+  try{
+    await fetch(`${cfg.url}/rest/v1/ayarlar?id=eq.1`,{
+      method:'PATCH',
+      headers:{'apikey':cfg.key,'Authorization':`Bearer ${cfg.key}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({manuel_mod:manuel,guncelleme_zamani:new Date().toISOString()})
+    });
+  }catch(e){alert('Mod değiştirilemedi: '+e.message);}
+}
+
+async function pwmGonder(pwm){
+  const cfg=getCfg();
+  try{
+    await fetch(`${cfg.url}/rest/v1/ayarlar?id=eq.1`,{
+      method:'PATCH',
+      headers:{'apikey':cfg.key,'Authorization':`Bearer ${cfg.key}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({manuel_pwm:parseInt(pwm),guncelleme_zamani:new Date().toISOString()})
+    });
+  }catch(e){console.error('PWM gönderilemedi:',e);}
+}
+
+function hizliAyar(pwm){
+  document.getElementById('pwmSlider').value=pwm;
+  document.getElementById('sliderDeger').textContent='%'+Math.round(pwm/2.55);
+  pwmGonder(pwm);
 }
 
 async function ayariKaydet(){
