@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Akıllı Sistem · elfatek</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -164,8 +166,35 @@
       <span id="liveStatus">Bağlanıyor...</span>
     </div>
     <button class="btn-cfg" onclick="document.getElementById('cfgModal').classList.add('open')">⚙ Ayarlar</button>
+    <button class="btn-cfg" onclick="cikisYap()" title="Çıkış Yap" style="background:rgba(240,82,82,0.1);border-color:rgba(240,82,82,0.3);color:#f05252">🚪 Çıkış</button>
   </div>
 </nav>
+
+<!-- ADMIN LOGIN OVERLAY -->
+<div id="loginOverlay" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,var(--navy-900),var(--navy-800));z-index:999;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
+  <div style="max-width:420px;width:100%;background:var(--navy-800);border:1px solid var(--border-bright);border-radius:20px;padding:40px 36px;box-shadow:0 40px 80px rgba(0,0,0,0.6);">
+    <div style="text-align:center;margin-bottom:28px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 22.8" style="height:28px;fill:#fff;margin-bottom:18px">
+        <path d="M0,18.36v-6.74c0-2.44,2-4.44,4.44-4.44h15.62c2.45,0,4.44,2,4.44,4.44v4.98H4.62v-3.22h16.67v-1.76c0-.69-.54-1.22-1.22-1.22H4.44c-.69,0-1.22.54-1.22,1.22v6.74c0,.69.54,1.22,1.22,1.22h20.07v3.22H4.44c-2.44,0-4.44-2-4.44-4.44Z"/>
+        <path d="M28.08,22.8V.08h3.22v22.72h-3.22Z"/>
+        <path d="M34.88,4.52c0-2.44,2-4.44,4.44-4.44h14.37v3.22h-14.37c-.69,0-1.22.54-1.22,1.22v2.65h12.76v3.22h-12.76v12.4h-3.22s0-18.27,0-18.27Z"/>
+        <path d="M53.39,18.36v-1.49c0-2.45,2-4.44,4.44-4.44h15.44v3.19h-15.44c-.69,0-1.22.57-1.22,1.25v1.49c0,.69.54,1.22,1.22,1.22h16.84v-7.96c0-.69-.54-1.22-1.22-1.22h-19.35v-3.22h19.35c2.45,0,4.44,2,4.44,4.44v11.18h-20.07c-2.44,0-4.44-2-4.44-4.44h0Z"/>
+        <path d="M97.02,18.36v-6.74c0-2.44,2-4.44,4.44-4.44h15.62c2.45,0,4.44,2,4.44,4.44v4.98h-19.89v-3.22h16.67v-1.76c0-.69-.54-1.22-1.22-1.22h-15.62c-.69,0-1.22.54-1.22,1.22v6.74c0,.69.54,1.22,1.22,1.22h20.07v3.22h-20.07c-2.44,0-4.44-2-4.44-4.44Z"/>
+        <path d="M141.89,14.99l8.11,7.81h-4.62l-5.87-5.66c-.18-.15-.39-.27-.66-.39-.21-.09-.45-.15-.72-.15h-9.81v6.2h-3.22V.08h3.22v13.3h9.81c.27,0,.51-.03.72-.15h.06c.18-.06.36-.21.6-.39l5.87-5.66h4.62l-8.11,7.81Z"/>
+        <path d="M85.91,19.58c-.69,0-1.22-.54-1.22-1.22v-7.96h7.78v-3.22h-7.78V0h-3.22v7.18h-1.99v3.21h1.99v7.97c0,2.44,2,4.44,4.44,4.44h7.99v-3.22h-7.99Z"/>
+      </svg>
+      <h2 style="font-size:1.2rem;color:var(--white);margin-bottom:6px;font-weight:700">🔐 Admin Girişi</h2>
+      <p style="font-size:0.8rem;color:var(--white-60)">Akıllı Sistem Paneli'ne erişmek için şifre gereklidir</p>
+    </div>
+    <div class="mf">
+      <label>Şifre</label>
+      <input type="password" id="loginInput" placeholder="••••••••" onkeypress="if(event.key==='Enter')girisYap()" autofocus>
+    </div>
+    <div id="loginHata" style="display:none;background:rgba(240,82,82,0.1);border:1px solid rgba(240,82,82,0.3);color:#f05252;padding:10px 14px;border-radius:8px;font-size:0.78rem;margin-bottom:14px;text-align:center">❌ Hatalı şifre! Tekrar deneyin.</div>
+    <button class="btn btn-primary" onclick="girisYap()" style="width:100%;padding:12px">🔓 Giriş Yap</button>
+    <p style="text-align:center;margin-top:20px;font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--white-30);letter-spacing:1px">ELFATEK · AKILLI SİSTEM · v1.0</p>
+  </div>
+</div>
 
 <div class="wrap">
   <div class="status-strip">
@@ -309,7 +338,10 @@
   <div class="tbl-card">
     <div class="tbl-hdr">
       <div class="tbl-ttl">📋 Veri Tablosu</div>
-      <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV İndir</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV İndir</button>
+        <button class="btn btn-primary" onclick="exportPDF()" style="background:var(--danger)">📄 PDF Rapor</button>
+      </div>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -340,6 +372,42 @@
 const DEF_URL = 'https://xjwugdlazfvtqkgkjczn.supabase.co';
 const DEF_KEY = 'sb_publishable_F8AnrUWRlHAMKpThAJLwZQ_mS1OYvEr';
 const TZ = 'Europe/Istanbul';
+const ADMIN_SIFRE = 'elfatek_26';
+
+// --- ADMIN GİRİŞ KONTROLÜ ---
+function girisKontrol(){
+  if(sessionStorage.getItem('elfatek_auth')!=='true'){
+    document.getElementById('loginOverlay').style.display='flex';
+    document.body.style.overflow='hidden';
+    return false;
+  }
+  return true;
+}
+
+function girisYap(){
+  const sifre=document.getElementById('loginInput').value;
+  if(sifre===ADMIN_SIFRE){
+    sessionStorage.setItem('elfatek_auth','true');
+    document.getElementById('loginOverlay').style.display='none';
+    document.body.style.overflow='auto';
+    document.getElementById('loginInput').value='';
+    document.getElementById('loginHata').style.display='none';
+    // Girişten sonra verileri yükle
+    applyQuick(); initCharts(); loadData(); ayarlariYukle();
+    setInterval(ayarlariYukle, 10000);
+  } else {
+    document.getElementById('loginHata').style.display='block';
+    document.getElementById('loginInput').value='';
+    document.getElementById('loginInput').focus();
+  }
+}
+
+function cikisYap(){
+  if(confirm('Çıkış yapmak istediğinize emin misiniz?')){
+    sessionStorage.removeItem('elfatek_auth');
+    location.reload();
+  }
+}
 
 let allData=[], currentPage=1, charts={};
 const PAGE=50;
@@ -357,6 +425,9 @@ window.onload=()=>{
   const c=getCfg();
   document.getElementById('cfgUrl').value=c.url;
   document.getElementById('cfgKey').value=c.key;
+  
+  if(!girisKontrol()) return; // Giriş yapılmamışsa devam etme
+  
   applyQuick(); initCharts(); loadData(); ayarlariYukle();
   setInterval(ayarlariYukle, 10000);
 };
@@ -664,6 +735,148 @@ function fmtDate(ts){
 function fmtShort(ts){
   if(!ts)return'';
   return new Date(ts).toLocaleString('tr-TR',{timeZone:TZ,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+function exportPDF(){
+  if(!allData.length){alert('Önce veri yükleyin!');return;}
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p','mm','a4');
+  const a = window._ayarlar || {};
+  
+  // Başlık
+  doc.setFillColor(10, 26, 53);
+  doc.rect(0, 0, 210, 35, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18);
+  doc.setFont(undefined,'bold');
+  doc.text('elfatek - Akilli Sistem Raporu', 14, 15);
+  doc.setFontSize(10);
+  doc.setFont(undefined,'normal');
+  doc.text('ESP32 IoT Cevre Izleme ve Otomasyon', 14, 22);
+  const simdi = new Date().toLocaleString('tr-TR',{timeZone:TZ});
+  doc.text('Olusturulma: '+simdi, 14, 28);
+  
+  // Rapor bilgileri
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(13);
+  doc.setFont(undefined,'bold');
+  doc.text('Rapor Ozeti', 14, 48);
+  
+  const first = allData[0], last = allData[allData.length-1];
+  const baslangic = fmtDate(first.timestamp);
+  const bitis = fmtDate(last.timestamp);
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined,'normal');
+  doc.autoTable({
+    startY: 52,
+    head:[['Parametre','Deger']],
+    body:[
+      ['Kayit Sayisi', allData.length.toLocaleString('tr-TR')],
+      ['Baslangic', baslangic],
+      ['Bitis', bitis],
+      ['Hedef Lux', (a.hedef_lux||'-')+' lx'],
+      ['LED Gucu', (a.led_guc_watt||'-')+' W'],
+      ['kWh Fiyati', (a.kwh_fiyati?parseFloat(a.kwh_fiyati).toFixed(2):'-')+' TL']
+    ],
+    theme:'striped',
+    headStyles:{fillColor:[21,85,158],textColor:255},
+    styles:{fontSize:9}
+  });
+  
+  // Sensor ozet
+  let y = doc.lastAutoTable.finalY + 8;
+  doc.setFontSize(13);
+  doc.setFont(undefined,'bold');
+  doc.text('Sensor Verileri', 14, y);
+  
+  const ort = (k) => {
+    const v = allData.map(d=>d[k]).filter(x=>x!=null);
+    return v.length? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : '-';
+  };
+  const mn = (k) => {
+    const v = allData.map(d=>d[k]).filter(x=>x!=null);
+    return v.length? Math.min(...v).toFixed(2) : '-';
+  };
+  const mx = (k) => {
+    const v = allData.map(d=>d[k]).filter(x=>x!=null);
+    return v.length? Math.max(...v).toFixed(2) : '-';
+  };
+  
+  doc.autoTable({
+    startY: y+4,
+    head:[['Parametre','Ortalama','Minimum','Maksimum']],
+    body:[
+      ['Sicaklik (C)', ort('sicaklik'), mn('sicaklik'), mx('sicaklik')],
+      ['Nem (%)', ort('nem'), mn('nem'), mx('nem')],
+      ['Isik (lux)', ort('isik'), mn('isik'), mx('isik')],
+      ['Hava Kalitesi (ppm)', ort('hava_kalitesi'), mn('hava_kalitesi'), mx('hava_kalitesi')]
+    ],
+    theme:'striped',
+    headStyles:{fillColor:[21,85,158],textColor:255},
+    styles:{fontSize:9}
+  });
+  
+  // Enerji
+  y = doc.lastAutoTable.finalY + 8;
+  doc.setFontSize(13);
+  doc.setFont(undefined,'bold');
+  doc.text('Enerji Tuketimi ve Maliyet', 14, y);
+  
+  const sure = document.getElementById('ledSure').textContent;
+  const gucOrt = document.getElementById('ortGuc').textContent;
+  const enerji = document.getElementById('toplamEnerji').textContent;
+  const maliyet = document.getElementById('toplamMaliyet').textContent;
+  
+  doc.autoTable({
+    startY: y+4,
+    head:[['Parametre','Deger']],
+    body:[
+      ['LED Calisma Suresi', sure],
+      ['Ortalama Guc', gucOrt],
+      ['Toplam Enerji', enerji],
+      ['Toplam Maliyet', maliyet]
+    ],
+    theme:'striped',
+    headStyles:{fillColor:[34,211,144],textColor:255},
+    styles:{fontSize:9}
+  });
+  
+  // Son 30 veri ornek tablosu
+  y = doc.lastAutoTable.finalY + 8;
+  if(y > 240) { doc.addPage(); y = 20; }
+  doc.setFontSize(13);
+  doc.setFont(undefined,'bold');
+  doc.text('Son 30 Kayit', 14, y);
+  
+  const sonKayitlar = allData.slice(-30).reverse();
+  doc.autoTable({
+    startY: y+4,
+    head:[['Tarih','Sic (C)','Nem (%)','Isik (lx)','Hava (ppm)']],
+    body: sonKayitlar.map(d=>[
+      fmtDate(d.timestamp),
+      d.sicaklik!=null?d.sicaklik.toFixed(1):'-',
+      d.nem!=null?d.nem.toFixed(1):'-',
+      d.isik!=null?d.isik.toFixed(0):'-',
+      d.hava_kalitesi!=null?d.hava_kalitesi:'-'
+    ]),
+    theme:'grid',
+    headStyles:{fillColor:[21,85,158],textColor:255},
+    styles:{fontSize:7},
+    margin:{left:14,right:14}
+  });
+  
+  // Footer her sayfada
+  const sayfaSayisi = doc.internal.getNumberOfPages();
+  for(let i=1;i<=sayfaSayisi;i++){
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('elfatek Akilli Sistem · Sayfa '+i+' / '+sayfaSayisi, 14, 290);
+    doc.text('aurasense26-glitch.github.io/elfatek', 150, 290);
+  }
+  
+  doc.save('elfatek_rapor_'+new Date().toISOString().slice(0,10)+'.pdf');
 }
 </script>
 </body>
