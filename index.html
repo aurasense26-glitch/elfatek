@@ -755,68 +755,87 @@ function fmtShort(ts){
   return new Date(ts).toLocaleString('tr-TR',{timeZone:TZ,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
 }
 
-function exportPDF(){
+async function exportPDF(){
   if(!allData.length){alert('Önce veri yükleyin!');return;}
   
-  // Türkçe karakter sorununu çözmek için metinleri düzeltici fonksiyon
-  const tr = (s) => String(s)
-    .replace(/İ/g,'I').replace(/ı/g,'i')
-    .replace(/Ş/g,'S').replace(/ş/g,'s')
-    .replace(/Ğ/g,'G').replace(/ğ/g,'g')
-    .replace(/Ç/g,'C').replace(/ç/g,'c')
-    .replace(/Ü/g,'U').replace(/ü/g,'u')
-    .replace(/Ö/g,'O').replace(/ö/g,'o');
+  const btn = event.target;
+  const eski = btn.textContent;
+  btn.textContent = 'PDF hazırlanıyor...';
+  btn.disabled = true;
   
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p','mm','a4');
-  const a = window._ayarlar || {};
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p','mm','a4');
+    const a = window._ayarlar || {};
+    
+    // Roboto fontu yükle (Türkçe karakter desteği için)
+    const fontUrl = 'https://cdn.jsdelivr.net/gh/googlefonts/roboto@main/src/hinted/Roboto-Regular.ttf';
+    const fontBoldUrl = 'https://cdn.jsdelivr.net/gh/googlefonts/roboto@main/src/hinted/Roboto-Bold.ttf';
+    
+    const toBase64 = async (url) => {
+      const res = await fetch(url);
+      const buf = await res.arrayBuffer();
+      let binary = '';
+      const bytes = new Uint8Array(buf);
+      for(let i=0; i<bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    };
+    
+    const regFont = await toBase64(fontUrl);
+    const boldFont = await toBase64(fontBoldUrl);
+    
+    doc.addFileToVFS('Roboto-Regular.ttf', regFont);
+    doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+    doc.addFileToVFS('Roboto-Bold.ttf', boldFont);
+    doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+    doc.setFont('Roboto');
   
   // Başlık
   doc.setFillColor(10, 26, 53);
   doc.rect(0, 0, 210, 35, 'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(18);
-  doc.setFont(undefined,'bold');
-  doc.text(tr('elfatek - Akıllı Sistem Raporu'), 14, 15);
+  doc.setFont('Roboto','bold');
+  doc.text('elfatek - Akıllı Sistem Raporu', 14, 15);
   doc.setFontSize(10);
-  doc.setFont(undefined,'normal');
-  doc.text(tr('ESP32 IoT Çevre İzleme ve Otomasyon'), 14, 22);
+  doc.setFont('Roboto','normal');
+  doc.text('ESP32 IoT Çevre İzleme ve Otomasyon', 14, 22);
   const simdi = new Date().toLocaleString('tr-TR',{timeZone:TZ});
-  doc.text(tr('Oluşturulma: ')+simdi, 14, 28);
+  doc.text('Oluşturulma: '+simdi, 14, 28);
   
   // Rapor bilgileri
   doc.setTextColor(0,0,0);
   doc.setFontSize(13);
-  doc.setFont(undefined,'bold');
-  doc.text(tr('Rapor Özeti'), 14, 48);
+  doc.setFont('Roboto','bold');
+  doc.text('Rapor Özeti', 14, 48);
   
   const first = allData[0], last = allData[allData.length-1];
   const baslangic = fmtDate(first.timestamp);
   const bitis = fmtDate(last.timestamp);
   
   doc.setFontSize(10);
-  doc.setFont(undefined,'normal');
+  doc.setFont('Roboto','normal');
   doc.autoTable({
     startY: 52,
-    head:[[tr('Parametre'),tr('Değer')]],
+    head:[['Parametre','Değer']],
     body:[
-      [tr('Kayıt Sayısı'), allData.length.toLocaleString('tr-TR')],
-      [tr('Başlangıç'), baslangic],
-      [tr('Bitiş'), bitis],
-      [tr('Hedef Lux'), (a.hedef_lux||'-')+' lx'],
-      [tr('LED Gücü'), (a.led_guc_watt||'-')+' W'],
-      [tr('kWh Fiyatı'), (a.kwh_fiyati?parseFloat(a.kwh_fiyati).toFixed(2):'-')+' TL']
+      ['Kayıt Sayısı', allData.length.toLocaleString('tr-TR')],
+      ['Başlangıç', baslangic],
+      ['Bitiş', bitis],
+      ['Hedef Lux', (a.hedef_lux||'-')+' lx'],
+      ['LED Gücü', (a.led_guc_watt||'-')+' W'],
+      ['kWh Fiyatı', (a.kwh_fiyati?parseFloat(a.kwh_fiyati).toFixed(2):'-')+' TL']
     ],
     theme:'striped',
-    headStyles:{fillColor:[21,85,158],textColor:255},
-    styles:{fontSize:9}
+    headStyles:{fillColor:[21,85,158],textColor:255,font:'Roboto',fontStyle:'bold'},
+    styles:{fontSize:9,font:'Roboto'}
   });
   
   // Sensor ozet
   let y = doc.lastAutoTable.finalY + 8;
   doc.setFontSize(13);
-  doc.setFont(undefined,'bold');
-  doc.text(tr('Sensör Verileri'), 14, y);
+  doc.setFont('Roboto','bold');
+  doc.text('Sensör Verileri', 14, y);
   
   const ort = (k) => {
     const v = allData.map(d=>d[k]).filter(x=>x!=null);
@@ -833,23 +852,23 @@ function exportPDF(){
   
   doc.autoTable({
     startY: y+4,
-    head:[[tr('Parametre'),tr('Ortalama'),tr('Minimum'),tr('Maksimum')]],
+    head:[['Parametre','Ortalama','Minimum','Maksimum']],
     body:[
-      [tr('Sıcaklık (°C)'), ort('sicaklik'), mn('sicaklik'), mx('sicaklik')],
-      [tr('Nem (%)'), ort('nem'), mn('nem'), mx('nem')],
-      [tr('Işık (lux)'), ort('isik'), mn('isik'), mx('isik')],
-      [tr('Hava Kalitesi (ppm)'), ort('hava_kalitesi'), mn('hava_kalitesi'), mx('hava_kalitesi')]
+      ['Sıcaklık (°C)', ort('sicaklik'), mn('sicaklik'), mx('sicaklik')],
+      ['Nem (%)', ort('nem'), mn('nem'), mx('nem')],
+      ['Işık (lux)', ort('isik'), mn('isik'), mx('isik')],
+      ['Hava Kalitesi (ppm)', ort('hava_kalitesi'), mn('hava_kalitesi'), mx('hava_kalitesi')]
     ],
     theme:'striped',
-    headStyles:{fillColor:[21,85,158],textColor:255},
-    styles:{fontSize:9}
+    headStyles:{fillColor:[21,85,158],textColor:255,font:'Roboto',fontStyle:'bold'},
+    styles:{fontSize:9,font:'Roboto'}
   });
   
   // Enerji
   y = doc.lastAutoTable.finalY + 8;
   doc.setFontSize(13);
-  doc.setFont(undefined,'bold');
-  doc.text(tr('Enerji Tüketimi ve Maliyet'), 14, y);
+  doc.setFont('Roboto','bold');
+  doc.text('Enerji Tüketimi ve Maliyet', 14, y);
   
   const sure = document.getElementById('ledSure').textContent;
   const gucOrt = document.getElementById('ortGuc').textContent;
@@ -858,24 +877,24 @@ function exportPDF(){
   
   doc.autoTable({
     startY: y+4,
-    head:[[tr('Parametre'),tr('Değer')]],
+    head:[['Parametre','Değer']],
     body:[
-      [tr('LED Çalışma Süresi'), tr(sure)],
-      [tr('Ortalama Güç'), gucOrt],
-      [tr('Toplam Enerji'), enerji],
-      [tr('Toplam Maliyet'), maliyet]
+      ['LED Çalışma Süresi', sure],
+      ['Ortalama Güç', gucOrt],
+      ['Toplam Enerji', enerji],
+      ['Toplam Maliyet', maliyet]
     ],
     theme:'striped',
-    headStyles:{fillColor:[34,211,144],textColor:255},
-    styles:{fontSize:9}
+    headStyles:{fillColor:[34,211,144],textColor:255,font:'Roboto',fontStyle:'bold'},
+    styles:{fontSize:9,font:'Roboto'}
   });
   
   // Seçili aralıktan eşit dağılımla 30 örnek al
   y = doc.lastAutoTable.finalY + 8;
   if(y > 240) { doc.addPage(); y = 20; }
   doc.setFontSize(13);
-  doc.setFont(undefined,'bold');
-  doc.text(tr('Veri Örnekleri (Tüm Aralıktan)'), 14, y);
+  doc.setFont('Roboto','bold');
+  doc.text('Veri Örnekleri (Tüm Aralıktan)', 14, y);
   
   let ornekler = [];
   if(allData.length <= 30){
@@ -890,7 +909,7 @@ function exportPDF(){
   
   doc.autoTable({
     startY: y+4,
-    head:[[tr('Tarih'),tr('Sıc (°C)'),tr('Nem (%)'),tr('Işık (lx)'),tr('Hava (ppm)')]],
+    head:[['Tarih','Sıc (°C)','Nem (%)','Işık (lx)','Hava (ppm)']],
     body: ornekler.map(d=>[
       fmtDate(d.timestamp),
       d.sicaklik!=null?d.sicaklik.toFixed(1):'-',
@@ -899,8 +918,8 @@ function exportPDF(){
       d.hava_kalitesi!=null?String(d.hava_kalitesi):'-'
     ]),
     theme:'grid',
-    headStyles:{fillColor:[21,85,158],textColor:255},
-    styles:{fontSize:7},
+    headStyles:{fillColor:[21,85,158],textColor:255,font:'Roboto',fontStyle:'bold'},
+    styles:{fontSize:7,font:'Roboto'},
     margin:{left:14,right:14}
   });
   
@@ -908,13 +927,22 @@ function exportPDF(){
   const sayfaSayisi = doc.internal.getNumberOfPages();
   for(let i=1;i<=sayfaSayisi;i++){
     doc.setPage(i);
+    doc.setFont('Roboto','normal');
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text(tr('elfatek Akıllı Sistem')+' · '+tr('Sayfa ')+i+' / '+sayfaSayisi, 14, 290);
+    doc.text('elfatek Akıllı Sistem · Sayfa '+i+' / '+sayfaSayisi, 14, 290);
     doc.text('aurasense26-glitch.github.io/elfatek', 150, 290);
   }
   
   doc.save('elfatek_rapor_'+new Date().toISOString().slice(0,10)+'.pdf');
+  
+  } catch(err) {
+    alert('PDF oluşturulurken hata: '+err.message);
+    console.error(err);
+  } finally {
+    btn.textContent = eski;
+    btn.disabled = false;
+  }
 }
 </script>
 </body>
