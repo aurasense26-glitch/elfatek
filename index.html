@@ -616,20 +616,32 @@ async function loadData(){
   const s=document.getElementById('startDate').value;
   const e=document.getElementById('endDate').value;
 
-  let url=`${cfg.url}/rest/v1/sensor_data?select=*&order=timestamp.desc&limit=100000`;
-  if(s) url+=`&timestamp=gte.${s.replace('T',' ')}:00`;
-  if(e) url+=`&timestamp=lte.${e.replace('T',' ')}:00`;
+  let baseUrl=`${cfg.url}/rest/v1/sensor_data?select=*&order=timestamp.desc`;
+  if(s) baseUrl+=`&timestamp=gte.${s.replace('T',' ')}:00`;
+  if(e) baseUrl+=`&timestamp=lte.${e.replace('T',' ')}:00`;
 
   try{
-    const res=await fetch(url,{headers:{
-      'apikey':cfg.key,
-      'Authorization':`Bearer ${cfg.key}`,
-      'Range-Unit':'items',
-      'Range':'0-99999',
-      'Prefer':'count=exact'
-    }});
-    if(!res.ok){const er=await res.json(); throw new Error(er.message||res.status);}
-    allData=(await res.json()).reverse();
+    // Supabase 1000 limit var, sayfa sayfa çek
+    allData = [];
+    let offset = 0;
+    const batchSize = 1000;
+    const maxKayit = 100000;
+    
+    while(offset < maxKayit){
+      const url = `${baseUrl}&limit=${batchSize}&offset=${offset}`;
+      const res = await fetch(url, {
+        headers:{'apikey':cfg.key,'Authorization':`Bearer ${cfg.key}`}
+      });
+      if(!res.ok){const er=await res.json(); throw new Error(er.message||res.status);}
+      const batch = await res.json();
+      if(batch.length === 0) break;
+      allData = allData.concat(batch);
+      document.getElementById('liveStatus').textContent = `Yükleniyor... ${allData.length}`;
+      if(batch.length < batchSize) break;
+      offset += batchSize;
+    }
+    
+    allData.reverse();
 
     document.getElementById('liveStatus').textContent=`${allData.length} kayıt`;
     document.getElementById('totalCount').textContent=allData.length.toLocaleString('tr-TR');
