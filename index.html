@@ -616,12 +616,18 @@ async function loadData(){
   const s=document.getElementById('startDate').value;
   const e=document.getElementById('endDate').value;
 
-  let url=`${cfg.url}/rest/v1/sensor_data?select=*&order=timestamp.desc&limit=10000`;
+  let url=`${cfg.url}/rest/v1/sensor_data?select=*&order=timestamp.desc&limit=100000`;
   if(s) url+=`&timestamp=gte.${s.replace('T',' ')}:00`;
   if(e) url+=`&timestamp=lte.${e.replace('T',' ')}:00`;
 
   try{
-    const res=await fetch(url,{headers:{'apikey':cfg.key,'Authorization':`Bearer ${cfg.key}`}});
+    const res=await fetch(url,{headers:{
+      'apikey':cfg.key,
+      'Authorization':`Bearer ${cfg.key}`,
+      'Range-Unit':'items',
+      'Range':'0-99999',
+      'Prefer':'count=exact'
+    }});
     if(!res.ok){const er=await res.json(); throw new Error(er.message||res.status);}
     allData=(await res.json()).reverse();
 
