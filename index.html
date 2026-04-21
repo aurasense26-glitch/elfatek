@@ -842,18 +842,28 @@ function exportPDF(){
     styles:{fontSize:9}
   });
   
-  // Son 30 veri ornek tablosu
+  // Seçili aralıktan eşit dağılımla 30 örnek al
   y = doc.lastAutoTable.finalY + 8;
   if(y > 240) { doc.addPage(); y = 20; }
   doc.setFontSize(13);
   doc.setFont(undefined,'bold');
-  doc.text('Son 30 Kayit', 14, y);
+  doc.text('Veri Ornekleri (Tum Aralıktan)', 14, y);
   
-  const sonKayitlar = allData.slice(-30).reverse();
+  let ornekler = [];
+  if(allData.length <= 30){
+    ornekler = [...allData];
+  } else {
+    const adim = (allData.length - 1) / 29;
+    for(let i=0; i<30; i++){
+      const idx = Math.round(i * adim);
+      ornekler.push(allData[idx]);
+    }
+  }
+  
   doc.autoTable({
     startY: y+4,
     head:[['Tarih','Sic (C)','Nem (%)','Isik (lx)','Hava (ppm)']],
-    body: sonKayitlar.map(d=>[
+    body: ornekler.map(d=>[
       fmtDate(d.timestamp),
       d.sicaklik!=null?d.sicaklik.toFixed(1):'-',
       d.nem!=null?d.nem.toFixed(1):'-',
